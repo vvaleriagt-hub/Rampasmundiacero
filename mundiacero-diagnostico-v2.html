@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnóstico de Andén · Mundiacero</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --red: #C0392B;
+  --red-dark: #922B21;
+  --red-light: #FDF0EE;
+  --steel: #1A1F2E;
+  --gray: #6B7280;
+  --gray-light: #F4F5F7;
+  --white: #FFFFFF;
+  --border: #E5E7EB;
+  --green-bg: #DCFCE7; --green-fg: #15803D;
+  --amber-bg: #FEF3C7; --amber-fg: #92400E;
+  --blue-bg: #EFF6FF; --blue-fg: #1D4ED8;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: 'DM Sans', sans-serif; background: var(--steel); min-height: 100vh; color: var(--steel); overflow-x: hidden; }
+
+/* ── LAYOUT ── */
+.page { min-height: 100vh; display: grid; grid-template-columns: 290px 1fr; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  background: var(--red);
+  padding: 2.25rem 1.75rem;
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh;
+  overflow: hidden;
+}
+.sidebar::after {
+  content: '';
+  position: absolute; bottom: -60px; right: -60px;
+  width: 200px; height: 200px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 50%;
+}
+.logo-word { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: #fff; letter-spacing: 3px; }
+.logo-tagline { font-size: 10px; color: rgba(255,255,255,0.55); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 2.5rem; }
+.sidebar-heading { font-family: 'Bebas Neue', sans-serif; font-size: 34px; color: #fff; line-height: 1.1; margin-bottom: 0.75rem; }
+.sidebar-desc { font-size: 12px; color: rgba(255,255,255,0.7); line-height: 1.7; margin-bottom: 2rem; }
+
+.steps-nav { display: flex; flex-direction: column; gap: 0; flex: 1; }
+.sn-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; position: relative; }
+.sn-item:not(:last-child)::after { content: ''; position: absolute; left: 12px; top: 34px; width: 1px; height: calc(100% - 14px); background: rgba(255,255,255,0.18); }
+.sn-dot { width: 25px; height: 25px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; color: rgba(255,255,255,0.45); flex-shrink: 0; transition: all 0.3s; }
+.sn-dot.active { background: #fff; border-color: #fff; color: var(--red); font-weight: 500; }
+.sn-dot.done { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.45); color: rgba(255,255,255,0.9); }
+.sn-label { font-size: 11.5px; color: rgba(255,255,255,0.45); transition: color 0.3s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sn-label.active { color: #fff; font-weight: 500; }
+.sn-label.done { color: rgba(255,255,255,0.65); }
+
+.sb-footer { padding-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.15); }
+.sb-footer p { font-size: 11px; color: rgba(255,255,255,0.45); line-height: 1.6; }
+
+/* ── MAIN ── */
+.main { background: var(--gray-light); display: flex; align-items: center; justify-content: center; padding: 2.5rem 1.5rem; min-height: 100vh; }
+.card { background: var(--white); border-radius: 20px; padding: 2.25rem; width: 100%; max-width: 600px; box-shadow: 0 4px 40px rgba(0,0,0,0.07); animation: fadeUp 0.35s ease both; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+.prog-bar { height: 3px; background: var(--border); border-radius: 2px; margin-bottom: 2rem; overflow: hidden; }
+.prog-fill { height: 100%; background: var(--red); border-radius: 2px; transition: width 0.4s ease; }
+
+.step-badge { font-size: 10.5px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--red); margin-bottom: 8px; }
+.question { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--steel); line-height: 1.1; margin-bottom: 6px; letter-spacing: 0.3px; }
+.hint { font-size: 13px; color: var(--gray); line-height: 1.6; margin-bottom: 1.5rem; }
+.hint strong { color: var(--steel); font-weight: 500; }
+
+.options { display: flex; flex-direction: column; gap: 9px; margin-bottom: 1.75rem; }
+.opt { display: flex; align-items: center; gap: 13px; padding: 13px 15px; border: 1.5px solid var(--border); border-radius: 12px; background: var(--white); cursor: pointer; text-align: left; transition: border-color 0.15s, background 0.15s, transform 0.1s; width: 100%; position: relative; }
+.opt:hover { border-color: var(--red); background: var(--red-light); transform: translateX(2px); }
+.opt.sel { border-color: var(--red); background: var(--red-light); }
+.opt.sel::after { content: '✓'; position: absolute; right: 15px; color: var(--red); font-size: 14px; font-weight: 500; }
+.opt-ico { width: 38px; height: 38px; background: var(--gray-light); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+.opt-main { font-size: 13.5px; font-weight: 500; color: var(--steel); margin-bottom: 1px; }
+.opt-desc { font-size: 12px; color: var(--gray); line-height: 1.4; }
+
+.nav-row { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+.btn-back { padding: 10px 18px; border: 1.5px solid var(--border); border-radius: 10px; background: transparent; color: var(--gray); font-size: 13px; font-family: 'DM Sans', sans-serif; cursor: pointer; }
+.btn-back:hover { border-color: var(--steel); color: var(--steel); }
+.btn-next { padding: 11px 26px; border: none; border-radius: 10px; background: var(--red); color: #fff; font-size: 13.5px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; opacity: 0.32; pointer-events: none; transition: opacity 0.2s, transform 0.1s; margin-left: auto; }
+.btn-next.ready { opacity: 1; pointer-events: all; }
+.btn-next.ready:hover { background: var(--red-dark); transform: translateY(-1px); }
+
+/* ── RESULT ── */
+.res-hero { background: var(--steel); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.25rem; position: relative; overflow: hidden; }
+.res-hero::before { content: ''; position: absolute; top: -40px; right: -40px; width: 130px; height: 130px; background: var(--red); border-radius: 50%; opacity: 0.12; }
+.res-hero::after { content: ''; position: absolute; bottom: -20px; left: -20px; width: 80px; height: 80px; background: rgba(255,255,255,0.04); border-radius: 50%; }
+.res-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; background: var(--red); color: #fff; border-radius: 20px; font-size: 10.5px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+.res-product { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: #fff; line-height: 1.05; margin-bottom: 8px; letter-spacing: 0.5px; }
+.res-desc { font-size: 13px; color: rgba(255,255,255,0.72); line-height: 1.65; }
+
+.res-specs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1.25rem; }
+.spec-card { background: var(--gray-light); border-radius: 10px; padding: 10px 12px; }
+.spec-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gray); font-weight: 500; margin-bottom: 4px; }
+.spec-val { font-size: 13px; font-weight: 500; color: var(--steel); line-height: 1.3; }
+
+.tags-section { margin-bottom: 1rem; }
+.tags-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gray); font-weight: 500; margin-bottom: 8px; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+.tg { background: var(--green-bg); color: var(--green-fg); }
+.ta { background: var(--amber-bg); color: var(--amber-fg); }
+
+.expert-note { background: #F8F9FA; border-left: 3px solid var(--red); border-radius: 0 8px 8px 0; padding: 12px 14px; font-size: 12.5px; color: var(--gray); line-height: 1.65; margin-bottom: 1.25rem; }
+.expert-note strong { color: var(--steel); font-weight: 500; }
+
+.dim-box { border: 1.5px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 1.25rem; }
+.dim-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gray); font-weight: 500; margin-bottom: 10px; }
+.dim-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.dim-chip { padding: 6px 14px; background: var(--blue-bg); color: var(--blue-fg); border-radius: 8px; font-size: 12px; font-weight: 500; }
+.dim-chip.highlight { background: var(--red); color: #fff; }
+
+.also-box { border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 16px; margin-bottom: 1.25rem; }
+.also-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gray); margin-bottom: 8px; font-weight: 500; }
+.also-item { font-size: 13px; color: var(--steel); display: flex; gap: 8px; margin-bottom: 5px; }
+.also-dot { color: var(--red); font-weight: 500; }
+
+.cta-box { background: var(--steel); border-radius: 14px; padding: 1.25rem 1.5rem; display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.cta-text { font-size: 13px; color: rgba(255,255,255,0.75); line-height: 1.55; }
+.cta-text strong { color: #fff; font-weight: 500; display: block; margin-bottom: 3px; }
+.btn-cta { padding: 11px 20px; background: var(--red); color: #fff; border: none; border-radius: 9px; font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: background 0.15s, transform 0.1s; }
+.btn-cta:hover { background: var(--red-dark); transform: translateY(-1px); }
+
+.restart-btn { display: block; text-align: center; margin-top: 1.25rem; font-size: 12px; color: var(--gray); cursor: pointer; background: none; border: none; font-family: 'DM Sans', sans-serif; text-decoration: underline; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 800px) {
+  .page { grid-template-columns: 1fr; }
+  .sidebar { position: static; height: auto; padding: 1.5rem 1.25rem; }
+  .steps-nav { display: none; }
+  .sidebar-heading { font-size: 28px; }
+  .main { padding: 1.25rem 1rem; align-items: flex-start; min-height: auto; }
+  .card { padding: 1.5rem; border-radius: 14px; }
+  .question { font-size: 26px; }
+  .res-product { font-size: 28px; }
+  .res-specs { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo-word">MUNDIACERO</div>
+    <div class="logo-tagline">Equipamiento Industrial</div>
+    <div class="sidebar-heading">Diagnóstico<br>de Andén</div>
+    <p class="sidebar-desc">Responde las preguntas y te decimos qué rampa se adapta mejor a tu operación. Sin tecnicismos, sin compromiso.</p>
+    <nav class="steps-nav" id="stepsNav"></nav>
+    <div class="sb-footer">
+      <p>Fabricamos rampas mecánicas, hidráulicas, minidocks y rampas de patio. +20 años equipando naves industriales en México.</p>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="card" id="card">
+      <div class="prog-bar"><div class="prog-fill" id="prog" style="width:0%"></div></div>
+      <div id="content"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* =========================================================
+   DEFINICIÓN DE PASOS
+   ========================================================= */
+const ALL_STEPS = [
+  {
+    id: "situacion",
+    label: "Situación actual",
+    q: "¿Cuál describe mejor tu situación actual?",
+    hint: "Esto define qué soluciones son posibles desde el principio.",
+    opts: [
+      { ico: "🏗️", main: "Estoy construyendo o remodelando mi nave", desc: "Puedo hacer obra civil e incluir fosa", val: "construccion" },
+      { ico: "🏭", main: "Ya tengo andén construido con fosa", desc: "Quiero equipar o mejorar el andén existente", val: "existente_fosa" },
+      { ico: "🧱", main: "Tengo andén construido sin fosa", desc: "No puedo o no quiero hacer obra mayor", val: "existente_sin_fosa" },
+      { ico: "📦", main: "No tengo andén — cargo a nivel de piso", desc: "Los camiones se acomodan en terreno plano", val: "piso" }
+    ]
+  },
+  {
+    id: "camiones",
+    label: "Tipo de camión",
+    q: "¿Qué tipo de camiones recibes habitualmente?",
+    hint: "El tamaño del camión impacta la dimensión de rampa recomendada.",
+    opts: [
+      { ico: "🚐", main: "Camionetas o rabones (3½ a 10 ton)", desc: "Unidades medianas, caja corta o estándar", val: "pequeno" },
+      { ico: "🚛", main: "Tortons (caja de ~9 m)", desc: "Camión de carga completa, caja estándar", val: "mediano" },
+      { ico: "🚚", main: "Trailers / semirremolques (caja de ~13 m)", desc: "La unidad más grande, plataforma alta", val: "grande" },
+      { ico: "🔀", main: "Mezcla de varios tipos", desc: "Recibo desde camionetas hasta trailers", val: "mixto" }
+    ]
+  },
+  {
+    id: "volumen",
+    label: "Volumen de operación",
+    q: "¿Cuántos camiones cargas o descargas al día por posición de andén?",
+    hint: "Esto define si conviene una solución manual, semiautomática o totalmente automatizada.",
+    opts: [
+      { ico: "🔹", main: "Hasta 4 camiones al día", desc: "Operación ligera o esporádica", val: "bajo" },
+      { ico: "🔸", main: "Entre 5 y 15 camiones al día", desc: "Operación regular, un turno de trabajo", val: "medio" },
+      { ico: "🔺", main: "Más de 15 camiones al día", desc: "Operación intensa, dos turnos o más", val: "alto" }
+    ]
+  },
+  {
+    id: "equipo",
+    label: "Equipo de maniobra",
+    q: "¿Qué equipo usan para mover la mercancía dentro del camión?",
+    hint: "La rampa debe soportar el peso del equipo más la carga. No necesitas saber el tonelaje exacto.",
+    opts: [
+      { ico: "🛒", main: "Pallet jack / transpaleta manual", desc: "Sin motor, empujado por el operador", val: "manual" },
+      { ico: "⚡", main: "Montacargas eléctrico contrapeso", desc: "El más común en bodegas y CEDIS", val: "electrico" },
+      { ico: "🔥", main: "Montacargas de gas LP o diesel", desc: "Mayor tonelaje, uso rudo", val: "combustion" },
+      { ico: "❓", main: "No lo sé con certeza", desc: "Usamos montacargas pero desconozco el tipo", val: "desconocido" }
+    ]
+  },
+  {
+    id: "desnivel",
+    label: "Diferencia de altura",
+    q: "¿Hay mucha diferencia de altura entre tu piso de andén y la caja de los camiones?",
+    hint: "El minidock cubre ±5 pulgadas. Las rampas mecánica e hidráulica cubren ±12 pulgadas.",
+    opts: [
+      { ico: "📏", main: "Muy poca — casi al mismo nivel", desc: "Los camiones llegan casi exacto a la altura del andén", val: "minima" },
+      { ico: "📐", main: "Diferencia normal — hasta 12 pulgadas (30 cm)", desc: "Variación típica entre distintas unidades", val: "normal" },
+      { ico: "⬆️", main: "Diferencia grande o muy variable", desc: "Recibo trailers altos y camionetas bajas mezcladas", val: "grande" }
+    ]
+  },
+  {
+    id: "presupuesto",
+    label: "Enfoque de inversión",
+    q: "¿Cómo describes mejor tu enfoque de inversión?",
+    hint: "Esto no cambia la calidad de la recomendación — solo la afina para tu realidad.",
+    opts: [
+      { ico: "💲", main: "Priorizo el menor costo inicial", desc: "Prefiero una inversión accesible ahora", val: "bajo" },
+      { ico: "⚖️", main: "Busco balance entre costo y rendimiento", desc: "Quiero lo mejor dentro de un presupuesto razonable", val: "medio" },
+      { ico: "🏆", main: "Priorizo durabilidad y menor mantenimiento", desc: "Invierto más ahora para ganar a largo plazo", val: "alto" }
+    ]
+  }
+];
+
+/* Pasos según situación */
+function getSteps(situacion) {
+  if (situacion === "piso") {
+    return ALL_STEPS.filter(s => ["situacion","camiones","volumen","equipo"].includes(s.id));
+  }
+  return [...ALL_STEPS];
+}
+
+/* =========================================================
+   LÓGICA DE RESULTADOS
+   ========================================================= */
+function computeResult(a) {
+  const sit = a.situacion;
+  const cam = a.camiones;
+  const vol = a.volumen;
+  const eq  = a.equipo;
+  const des = a.desnivel || "normal";
+  const pre = a.presupuesto || "medio";
+
+  /* --- RAMPA DE PATIO --- */
+  if (sit === "piso") {
+    return {
+      producto: "Rampa de Patio",
+      icon: "🚛",
+      desc: "Solución portátil y sin obra civil. Actúa como conector entre el nivel del piso y la caja del camión, permitiendo que el montacargas suba directamente al vehículo para agilizar la carga y descarga.",
+      specs: [
+        { label: "Instalación", val: "Sin obra civil" },
+        { label: "Uso", val: "Portátil · reubicable" },
+        { label: "Ideal para", val: "Carga a ras de suelo" }
+      ],
+      pros: ["No requiere obra civil", "Reubicable entre posiciones", "Disponibilidad inmediata", "Costo accesible"],
+      cons: ["Requiere maniobra para posicionar", "No aplica con andén elevado"],
+      nota: "Complementa la rampa con topes de patio Mundiacero para inmovilizar el camión durante la maniobra y evitar accidentes.",
+      dims: null,
+      dimNota: null,
+      alt: null
+    };
+  }
+
+  /* --- MINIDOCK --- */
+  const esMinidock = (
+    vol === "bajo" &&
+    des === "minima" &&
+    (sit === "existente_sin_fosa" || sit === "existente_fosa") &&
+    eq !== "combustion"
+  );
+  if (esMinidock) {
+    return {
+      producto: "Minidock",
+      icon: "🔩",
+      desc: "El nivelador más compacto y económico del mercado. Se monta en la cara del andén sin necesidad de fosa. Ideal para operaciones de bajo volumen donde los camiones llegan a altura estándar.",
+      specs: [
+        { label: "Rango de nivelación", val: "±5 pulgadas" },
+        { label: "Camiones/día", val: "Hasta 4 por posición" },
+        { label: "Instalación", val: "Sin fosa · horas" }
+      ],
+      pros: ["Sin obra civil requerida", "La opción más económica del catálogo", "Instalación rápida", "Ocupa mínimo espacio en el andén"],
+      cons: ["Rango de nivelación limitado (±5 pulgadas)", "No apto para desniveles grandes", "Para operaciones de bajo volumen"],
+      nota: "Funciona bien cuando los camiones que recibes son siempre del mismo tipo y llegan a una altura muy similar a tu andén. Si en el futuro crece tu operación o empiezas a recibir unidades más grandes, la rampa mecánica o hidráulica será el siguiente paso.",
+      dims: null,
+      dimNota: null,
+      alt: "Si tu operación crece · Rampa Mecánica"
+    };
+  }
+
+  /* --- RAMPA MECÁNICA --- */
+  const esMecanica = (
+    (pre === "bajo" || pre === "medio") &&
+    vol !== "alto" &&
+    eq !== "combustion" &&
+    des !== "grande"
+  );
+
+  /* --- RAMPA HIDRÁULICA --- */
+  // Todo lo demás, o cuando la situación lo requiere claramente
+  const esHidraulica = !esMinidock && (
+    vol === "alto" ||
+    eq === "combustion" ||
+    pre === "alto" ||
+    des === "grande" ||
+    cam === "mixto" ||
+    sit === "construccion"
+  );
+
+  /* Lógica de dimensión recomendada */
+  function getDimRecomendada(producto) {
+    if (producto === "hidraulica") {
+      if (cam === "pequeno") return "6×6 ft";
+      if (cam === "grande" || cam === "mixto" || des === "grande") return "6×10 ft";
+      return "6×8 ft"; // más común
+    }
+    if (producto === "mecanica") {
+      if (cam === "grande" || cam === "mixto") return "7×8 ft";
+      return "6×8 ft";
+    }
+    return "6×8 ft";
+  }
+
+  if (esHidraulica) {
+    const dim = getDimRecomendada("hidraulica");
+    const dimInfo = {
+      "6×6 ft": "Ideal para andenes con espacio limitado, bodegas refrigeradas o camiones de menor tamaño (hasta torton).",
+      "6×8 ft": "La dimensión más estándar en la industria. Cubre la mayoría de operaciones con camiones medianos y trailers.",
+      "6×10 ft": "Recomendada cuando recibes trailers altos, camiones de distintos tamaños o la diferencia de altura es variable y amplia."
+    };
+    return {
+      producto: "Rampa Hidráulica",
+      icon: "💧",
+      desc: "Operación con un solo botón, mayor capacidad de carga y vida útil superior. Es la solución más extendida en países con logística avanzada y la que más valor aporta a largo plazo.",
+      specs: [
+        { label: "Capacidad", val: "30,000 – 60,000 lbs" },
+        { label: "Nivelación", val: "±12 pulgadas" },
+        { label: "Operación", val: "Un botón" }
+      ],
+      pros: [
+        "Operación ergonómica con un solo botón",
+        "Mayor capacidad que la mecánica (hasta 60,000 lbs)",
+        "Menos mantenimiento a largo plazo",
+        "Acepta cargas pesadas y montacargas de gran tonelaje",
+        "Mayor rango de nivelación sin esfuerzo"
+      ],
+      cons: [
+        "Mayor inversión inicial vs mecánica",
+        "Requiere toma eléctrica en el andén",
+        sit === "existente_fosa" ? "Tu andén ya tiene fosa: instalación directa" :
+        sit === "construccion" ? "Incluir la fosa en obra no genera costo adicional significativo" :
+        "Si no tienes fosa, evaluar versión autoportante"
+      ],
+      nota: `En México la rampa mecánica es la más común históricamente, pero la hidráulica es el estándar en países con logística más avanzada. La diferencia en mantenimiento y ergonomía justifica la inversión inicial, especialmente con ${vol === "alto" ? "tu volumen alto de operación" : "la carga que manejas"}.`,
+      dims: ["6×6 ft", "6×8 ft", "6×10 ft"],
+      dimRecom: dim,
+      dimNota: dimInfo[dim],
+      alt: pre === "bajo" ? "Si la inversión inicial es el factor limitante · Rampa Mecánica" : null
+    };
+  }
+
+  /* MECÁNICA (default si no aplica nada anterior) */
+  const dimM = getDimRecomendada("mecanica");
+  const dimInfoM = {
+    "6×6 ft": "Para andenes con espacio limitado o camiones de tamaño mediano.",
+    "6×8 ft": "La dimensión estándar de la industria, cubre la mayoría de operaciones.",
+    "7×8 ft": "Mayor ancho de plataforma, recomendado cuando recibes trailers o camiones grandes mezclados con otras unidades."
+  };
+  return {
+    producto: "Rampa Mecánica",
+    icon: "⚙️",
+    desc: "La rampa más común en la industria mexicana. Robusta, sin necesidad de electricidad y con excelente relación costo-beneficio para operaciones de volumen moderado.",
+    specs: [
+      { label: "Capacidad", val: "30,000 – 40,000 lbs" },
+      { label: "Nivelación", val: "±12 pulgadas" },
+      { label: "Operación", val: "Mecanismo manual" }
+    ],
+    pros: [
+      "Sin electricidad requerida",
+      "La más común y probada en México",
+      "Menor inversión inicial",
+      "Fácil de mantener y reparar",
+      "Mismo rango de nivelación que la hidráulica"
+    ],
+    cons: [
+      "Requiere esfuerzo físico para activar",
+      "Mayor desgaste en operaciones de alta frecuencia",
+      "Capacidad menor a la hidráulica (máx. 40,000 lbs)",
+      "Probable mayor mantenimiento a largo plazo"
+    ],
+    nota: "Es la solución más instalada en México por su costo accesible. Si tu operación crece o el mantenimiento empieza a pesar, el siguiente paso natural es la rampa hidráulica.",
+    dims: ["6×6 ft", "6×8 ft", "7×8 ft"],
+    dimRecom: dimM,
+    dimNota: dimInfoM[dimM],
+    alt: "Para mayor capacidad o menor mantenimiento · Rampa Hidráulica"
+  };
+}
+
+/* =========================================================
+   ESTADO
+   ========================================================= */
+let answers = {};
+let current = 0;
+let steps = [...ALL_STEPS];
+
+/* =========================================================
+   RENDER SIDEBAR NAV
+   ========================================================= */
+function renderNav() {
+  const nav = document.getElementById("stepsNav");
+  nav.innerHTML = steps.map((s, i) => {
+    const done = i < current;
+    const active = i === current;
+    return `<div class="sn-item">
+      <div class="sn-dot ${done?"done":""} ${active?"active":""}">${done ? "✓" : i+1}</div>
+      <span class="sn-label ${done?"done":""} ${active?"active":""}">${s.label}</span>
+    </div>`;
+  }).join("");
+}
+
+/* =========================================================
+   RENDER STEP
+   ========================================================= */
+function renderStep() {
+  const step = steps[current];
+  const total = steps.length;
+  document.getElementById("prog").style.width = (current / total * 100) + "%";
+  bounce();
+  renderNav();
+
+  const sel = answers[step.id];
+  document.getElementById("content").innerHTML = `
+    <div class="step-badge">${step.label} · ${current + 1} de ${total}</div>
+    <div class="question">${step.q}</div>
+    <p class="hint">${step.hint}</p>
+    <div class="options" id="opts">
+      ${step.opts.map(o => `
+        <button class="opt${sel === o.val ? " sel" : ""}" data-val="${o.val}">
+          <div class="opt-ico">${o.ico}</div>
+          <div>
+            <div class="opt-main">${o.main}</div>
+            <div class="opt-desc">${o.desc}</div>
+          </div>
+        </button>`).join("")}
+    </div>
+    <div class="nav-row">
+      ${current > 0 ? '<button class="btn-back" id="back">← Atrás</button>' : '<span></span>'}
+      <button class="btn-next${sel ? " ready" : ""}" id="next">
+        ${current === total - 1 ? "Ver recomendación →" : "Siguiente →"}
+      </button>
+    </div>`;
+
+  document.querySelectorAll(".opt").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const val = btn.dataset.val;
+      answers[step.id] = val;
+      if (step.id === "situacion") steps = getSteps(val);
+      document.querySelectorAll(".opt").forEach(b => b.classList.remove("sel"));
+      btn.classList.add("sel");
+      document.getElementById("next").classList.add("ready");
+    });
+  });
+
+  document.getElementById("next").addEventListener("click", () => {
+    if (!answers[step.id]) return;
+    if (current < steps.length - 1) { current++; renderStep(); }
+    else showResult();
+  });
+
+  const back = document.getElementById("back");
+  if (back) back.addEventListener("click", () => { current--; renderStep(); });
+}
+
+/* =========================================================
+   SHOW RESULT
+   ========================================================= */
+function showResult() {
+  document.getElementById("prog").style.width = "100%";
+  bounce();
+
+  // sidebar: all done
+  document.getElementById("stepsNav").querySelectorAll(".sn-dot").forEach(d => { d.className = "sn-dot done"; d.textContent = "✓"; });
+  document.getElementById("stepsNav").querySelectorAll(".sn-label").forEach(l => { l.className = "sn-label done"; });
+
+  const r = computeResult(answers);
+
+  const specsHTML = r.specs.map(s => `<div class="spec-card"><div class="spec-label">${s.label}</div><div class="spec-val">${s.val}</div></div>`).join("");
+  const prosHTML  = r.pros.map(p => `<span class="tag tg">${p}</span>`).join("");
+  const consHTML  = r.cons.map(c => `<span class="tag ta">${c}</span>`).join("");
+
+  let dimsHTML = "";
+  if (r.dims) {
+    const chips = r.dims.map(d => `<div class="dim-chip${d === r.dimRecom ? " highlight" : ""}">${d}</div>`).join("");
+    dimsHTML = `<div class="dim-box">
+      <div class="dim-title">Dimensiones disponibles — resaltada la recomendada para tu caso</div>
+      <div class="dim-grid">${chips}</div>
+      ${r.dimNota ? `<p style="margin-top:10px;font-size:12px;color:var(--gray);line-height:1.6;">${r.dimNota}</p>` : ""}
+    </div>`;
+  }
+
+  const altHTML = r.alt ? `<div class="also-box">
+    <div class="also-label">También podría funcionar para tu caso:</div>
+    ${r.alt.split("·").map(a => `<div class="also-item"><span class="also-dot">›</span><span>${a.trim()}</span></div>`).join("")}
+  </div>` : "";
+
+  document.getElementById("content").innerHTML = `
+    <div class="res-hero">
+      <div class="res-badge">⚡ Recomendación Mundiacero</div>
+      <div class="res-product">${r.icon} ${r.producto}</div>
+      <p class="res-desc">${r.desc}</p>
+    </div>
+
+    <div class="res-specs">${specsHTML}</div>
+
+    ${dimsHTML}
+
+    <div class="tags-section"><div class="tags-label">Ventajas para tu operación</div><div class="tags">${prosHTML}</div></div>
+    <div class="tags-section" style="margin-bottom:1.25rem"><div class="tags-label">Consideraciones</div><div class="tags">${consHTML}</div></div>
+
+    ${r.nota ? `<div class="expert-note"><strong>Nota del experto:</strong> ${r.nota}</div>` : ""}
+
+    ${altHTML}
+
+    <div class="cta-box">
+      <div class="cta-text">
+        <strong>¿Quieres confirmar esta recomendación?</strong>
+        Un especialista Mundiacero visita tu instalación, mide tu andén y te presenta una propuesta a la medida. Sin costo, sin compromiso.
+      </div>
+      <button class="btn-cta" onclick="abrirWA('${r.producto}')">Agendar asesoría →</button>
+    </div>
+
+    <button class="restart-btn" onclick="restart()">Reiniciar diagnóstico</button>`;
+}
+
+function abrirWA(producto) {
+  const msg = encodeURIComponent(`Hola, hice el diagnóstico de andén de Mundiacero y me recomendaron la ${producto}. Me gustaría agendar una asesoría personalizada.`);
+  window.open(`https://wa.me/521XXXXXXXXXX?text=${msg}`, '_blank');
+}
+
+function bounce() {
+  const card = document.getElementById("card");
+  card.style.animation = "none";
+  card.offsetHeight;
+  card.style.animation = "fadeUp 0.35s ease both";
+}
+
+function restart() {
+  answers = {}; current = 0; steps = [...ALL_STEPS];
+  renderStep();
+}
+
+renderStep();
+</script>
+</body>
+</html>
